@@ -3,8 +3,7 @@ pipeline {
 
     environment {
         PORT = "${env.BRANCH_NAME == 'main' ? '3000' : '3001'}"
-        IMAGE_NAME = "${env.BRANCH_NAME == 'main' ? 'nodemain:v1.0' : 'nodedev:v1.0'}"
-        CONTAINER_NAME = "${env.BRANCH_NAME == 'main' ? 'nodeapp_main_container' : 'nodeapp_dev_container'}"
+        IMAGE_TAG = "${env.BRANCH_NAME == 'main' ? 'nodemain-v1.0' : 'nodedev-v1.0'}"
         DOCKER_HUB_REPO = "tahabarann/cicd-pipeline-task"
     }
 
@@ -17,14 +16,14 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t $DOCKER_HUB_REPO:$IMAGE_NAME ."
+                sh "docker build -t $DOCKER_HUB_REPO:$IMAGE_TAG ."
             }
         }
 
         stage('Push Docker Image to Docker Hub') {
             steps {
                 withDockerRegistry([credentialsId: 'docker-hub-credentials', url: '']) {
-                    sh "docker push $DOCKER_HUB_REPO:$IMAGE_NAME"
+                    sh "docker push $DOCKER_HUB_REPO:$IMAGE_TAG"
                 }
             }
         }
