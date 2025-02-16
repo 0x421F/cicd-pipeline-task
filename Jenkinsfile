@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         PORT = "${env.BRANCH_NAME == 'main' ? '3000' : '3001'}"
-        IMAGE_NAME = "${env.BRANCH_NAME == 'main' ? 'nodemain:v1.0' : 'nodedev:v1.0'}"
+        IMAGE_TAG = "${env.BRANCH_NAME == 'main' ? 'nodemain-v1.0' : 'nodedev-v1.0'}"
         CONTAINER_NAME = "${env.BRANCH_NAME == 'main' ? 'nodeapp_main_container' : 'nodeapp_dev_container'}"
         DOCKER_HUB_REPO = "tahabarann/cicd-pipeline-task"
     }
@@ -17,14 +17,14 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t $DOCKER_HUB_REPO:$IMAGE_NAME ."
+                sh "docker build -t $DOCKER_HUB_REPO-$IMAGE_TAG ."
             }
         }
 
         stage('Push Docker Image to Docker Hub') {
             steps {
                 withDockerRegistry([credentialsId: '78788950-dd63-4609-b016-7592ffdd2a01', url: '']) {
-                    sh "docker push $DOCKER_HUB_REPO:$IMAGE_NAME"
+                    sh "docker push $DOCKER_HUB_REPO-$IMAGE_TAG"
                 }
             }
         }
@@ -47,7 +47,7 @@ pipeline {
             echo "Successfully built and pushed Docker image!"
         }
         failure {
-            echo "Pipeline failed!"
+            echo "Pipeline failed! Check logs for more details."
         }
     }
 }
