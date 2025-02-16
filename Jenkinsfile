@@ -1,52 +1,53 @@
 pipeline {
     agent any
 
+    environment {
+        PORT = "${env.BRANCH_NAME == 'main' ? '3000' : '3001'}"
+        IMAGE_NAME = "${env.BRANCH_NAME == 'main' ? 'nodemain:v1.0' : 'nodedev:v1.0'}"
+        CONTAINER_NAME = "${env.BRANCH_NAME == 'main' ? 'nodeapp_main_container' : 'nodeapp_dev_container'}"
+        DOCKER_HUB_REPO = "tahabarann/cicd-pipeline-task"
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                script {
-                    checkout scm
-                    echo "Building from branch: ${env.BRANCH_NAME}"
-                }
-            }
-        }
-
-        stage('Install & Test') {
-            steps {
-                script {
-                    sh 'npm install'
-                    sh 'npm test'  // or any test command
-                }
+                git branch: env.BRANCH_NAME, url: 'https://github.com/0x421F/cicd-pipeline-task.git'
             }
         }
 
         stage('Build Docker Image') {
-            when {
-                expression { return fileExists('Dockerfile') }
-            }
             steps {
-                script {
-                    // Optional: build a Docker image
-                    def imageTag = env.BRANCH_NAME == 'main' ? 'nodemain:v1.0' : 'nodedev:v1.0'
-                    sh "docker build -t ${imageTag} ."
-                    echo "Docker image ${imageTag} built."
+                sh "docker build -t $DOCKER_HUB_REPO:$IMAGE_NAME ."
+            }
+        }
+
+        stage('Push Docker Image to Docker Hub') {
+            steps {
+                withDockerRegistry([credentialsId: 'docker-hub-credentials', url: '']) {
+                    sh "docker push $DOCKER_HUB_REPO:$IMAGE_NAME"
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Trigger Deployment Pipeline') {
             steps {
                 script {
-                    sh 'docker ps -q --filter "name=nodeapp" | xargs -r docker stop || true'
-                    sh 'docker ps -aq --filter "name=nodeapp" | xargs -r docker rm || true'
-
-                    def port = env.BRANCH_NAME == 'main' ? '3000' : '3001'
-                    def imageTag = env.BRANCH_NAME == 'main' ? 'nodemain:v1.0' : 'nodedev:v1.0'
-
-                    echo "Deploying on port: ${port}"
-                    sh "docker run -d -p ${port}:${port} --name nodeapp -e PORT=${port} ${imageTag}"
+                    if (env.BRANCH_NAME == 'main') {
+                        build job: 'Deploy_to_main'
+                    } else if (env.BRANCH_NAME == 'dev') {
+                        build job: 'Deploy_to_dev'
+                    }
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo "Successfully built and pushed Docker image!"
+        }
+        failure {
+            echo "Pipeline failed!"
         }
     }
 }
