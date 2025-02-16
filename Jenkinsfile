@@ -22,7 +22,7 @@ pipeline {
 
         stage('Push Docker Image to Docker Hub') {
             steps {
-                withDockerRegistry([credentialsId: 'docker-hub-credentials', url: '']) {
+                withDockerRegistry([credentialsId: '78788950-dd63-4609-b016-7592ffdd2a01', url: '']) {
                     sh "docker push $DOCKER_HUB_REPO:$IMAGE_TAG"
                 }
             }
